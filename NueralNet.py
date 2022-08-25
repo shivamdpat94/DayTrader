@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import sklearn
 
-days = 1
+days = 2
 
 
 def makearray():
@@ -105,8 +105,8 @@ def makearray():
                     p = []
                     a = []
                     t = []
-                    #if len(Entry_data) > 500:
-                        #break
+                    # if len(Entry_data) > 5000:
+                    #     break
         Entry_data = np.array(Entry_data)
         Price_data = np.array(Price_data)
         Time_data = np.array(Time_data)
@@ -120,8 +120,7 @@ def makearray():
     return PD, ED, TD
 
 def makelabels( ED, PD, TD):
-
-    LABEL = []
+    LABEL= []
     for K in range(0,days):
         print("Day ",K)
         eed = ED[K].tolist()
@@ -138,7 +137,7 @@ def makelabels( ED, PD, TD):
             mark = [0] * len(eed[0])
             for k in range(0,len(eed[0])):
                 Entry_Price[k] = ppd[i][k]
-                stop[k] = Entry_Price[k] - (eed[i][k][9] *.25)
+                stop[k] = Entry_Price[k] - (eed[i][k][9] * .25)
                 mark[k] = Entry_Price[k] + (eed[i][k][9] * .25)
             for j in range(i,len(eed)):
                 any = 0
@@ -164,8 +163,6 @@ def makelabels( ED, PD, TD):
     return LABEL
 
 def makemodel():
-
-
     PD, ED, TD = makearray()
     label = makelabels(ED,PD,TD)
     LABEL = np.array(label)
@@ -180,13 +177,32 @@ def makemodel():
 
 
 
-    #ed,lbl = sklearn.utils.shuffle(ed, lbl)
+    # ed,lbl = sklearn.utils.shuffle(ed, lbl)
 
-    EDD = ed
+    # EDD = ed/ed[:,[-1]]
+
+
+    temp = np.copy(ed)
+    temp[:, :17] = temp[:, [-1]]
+    temp[:, 17:20] = 100
+    temp[:, 20:21] = temp[:, [-1]]
+    EDD = ed/temp
+    newEDD = []
+    newlbl = []
+    for i in range(0,len(EDD)):
+        if EDD[i][1] < 0:
+            newEDD.append(EDD[i])
+            newlbl.append(lbl[i])
+    newEDD = np.array(newEDD)
+    newlbl = np.array(newlbl)
+    EDD = newEDD
+    lbl = newlbl
+
+    # EDD = np.ndarray.round(EDD,4)
     LBL = keras.utils.to_categorical(lbl,2)
     model1 = Sequential()
-    model1.add(Dense(20, activation = 'relu', input_shape=(22,)))
-    #model1.add(Dense(50, activation = 'relu'))
+    model1.add(Dense(100, activation = 'relu', input_shape=(22,)))
+    model1.add(Dense(50, activation = 'relu'))
     model1.add(Dense(2, activation='softmax'))
     model1.compile(loss= 'categorical_crossentropy',optimizer=RMSprop(),metrics=['accuracy'])
     history1 = model1.fit(EDD,LBL,batch_size=100,epochs=10,verbose=1,)
@@ -195,9 +211,11 @@ def makemodel():
     print('Test accuracy: ',score1[1])
     wrong = 0
     length = len(EDD)
-    raw_predictions = model1.predict(EDD)
-    predictions = raw_predictions.argmax(axis=1)
+    pred = model1.predict(EDD)
+    predictions = pred.argmax(axis=1)
     llabel = LBL.argmax(axis=1)
+    unique, counts = np.unique(predictions, return_counts=True)
+    print(dict(zip(unique, counts)))
     comp = predictions == llabel
     wrong = len(comp) - np.count_nonzero(comp)
     print(np.count_nonzero(comp), " out of ", len(comp), " were right.")
@@ -205,10 +223,9 @@ def makemodel():
 
 
 
-newmodel = 1
 model = makemodel()
 model.save('mymodel')
-
+print('hi')
 
 
 
